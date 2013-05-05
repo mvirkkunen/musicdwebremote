@@ -12,6 +12,8 @@
 
 #include <QIcon>
 #include <QSystemTrayIcon>
+#include <QAction>
+#include <QMenu>
 
 #include <QxtGlobalShortcut>
 
@@ -45,7 +47,7 @@ public:
 
             response = new QxtWebPageEvent(-1, event->requestID, fifo);
             response->contentType = QByteArray("text/event-stream");
-        } else if (event->method == "POST" && path.length() > 1){
+        } else if (event->method == "POST" && path.length() > 1) {
             emit received(path.mid(1));
 
             response = new QxtWebPageEvent(-1, event->requestID, QByteArray("ok\n"));
@@ -88,6 +90,8 @@ class MusicdRemote : public QObject
     EventWebService *service;
 
     QList<QString> states;
+
+    QMenu *trayMenu;
     QSystemTrayIcon *trayIcon;
 
     QMap<QxtGlobalShortcut *, QString> shortcuts;
@@ -123,7 +127,21 @@ private:
 
     void initUI(QMap<QString, QString> mappings)
     {
-        trayIcon = new QSystemTrayIcon();
+        trayMenu = new QMenu();
+
+        addMenuCommand("Play", "togglePlay");
+        addMenuCommand("Stop", "stop");
+        trayMenu->addSeparator();
+        addMenuCommand("Next track", "next");
+        addMenuCommand("Previous track", "prev");
+        trayMenu->addSeparator();
+        trayMenu->addAction("Quit", this, SLOT(quit()));
+
+        connect(trayMenu, SIGNAL(triggered(QAction*)),
+                this, SLOT(trayMenuTriggered(QAction *)));
+
+        trayIcon = new QSystemTrayIcon(QIcon(":/icons/stop"));
+        trayIcon->setContextMenu(trayMenu);
 
         connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
                 this, SLOT(iconClick(QSystemTrayIcon::ActivationReason)));
@@ -140,11 +158,21 @@ private:
         }
     }
 
+    void addMenuCommand(QString text, QString command)
+    {
+        QAction *action = new QAction(text, trayMenu);
+
+        action->setData(command);
+        trayMenu->addAction(action);
+    }
+
 private slots:
     void setState(QString state)
     {
-        if (states.contains(state))
+        if (states.contains(state)) {
             trayIcon->setIcon(QIcon(QString(":/icons/%1").arg(state)));
+            trayMenu->actions()[0]->setText((state == "play") ? "Pause" : "Play");
+        }
     }
 
     void iconClick(QSystemTrayIcon::ActivationReason reason)
@@ -159,6 +187,16 @@ private slots:
 
         if (command != "")
             service->send(command);
+    }
+
+    void trayMenuTriggered(QAction *action)
+    {
+        service->send(action->data().value<QString>());
+    }
+
+    void quit()
+    {
+        QApplication::exit();
     }
 };
 

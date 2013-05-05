@@ -87,18 +87,18 @@ class MusicdRemote : public QObject
     QxtHttpSessionManager *manager;
     EventWebService *service;
 
-    QSystemTrayIcon *trayIcon;
     QList<QString> states;
+    QSystemTrayIcon *trayIcon;
 
-    QxtGlobalShortcut *shortcutKey;
+    QMap<QxtGlobalShortcut *, QString> shortcuts;
 
 public:
-    MusicdRemote(const QHostAddress &address, quint16 port)
+    MusicdRemote(const QHostAddress &address, quint16 port, QMap<QString, QString> mappings)
     {
         states << "stop" << "pause" << "play";
 
         initService(address, port);
-        initUI();
+        initUI(mappings);
 
         setState("stop");
 
@@ -121,17 +121,23 @@ private:
                 this, SLOT(setState(QString)));
     }
 
-    void initUI()
+    void initUI(QMap<QString, QString> mappings)
     {
         trayIcon = new QSystemTrayIcon();
 
         connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
                 this, SLOT(iconClick(QSystemTrayIcon::ActivationReason)));
 
-        shortcutKey = new QxtGlobalShortcut(QKeySequence("Pause"));
+        QMapIterator<QString, QString> i(mappings);
+        while (i.hasNext()) {
+            i.next();
 
-        connect(shortcutKey, SIGNAL(activated()),
-                this, SLOT(togglePlay()));
+            QxtGlobalShortcut *shortcut = new QxtGlobalShortcut(QKeySequence(i.key()));
+            shortcuts.insert(shortcut, i.value());
+
+            connect(shortcut, SIGNAL(activated()),
+                    this, SLOT(shortcutActivated()));
+        }
     }
 
 private slots:
@@ -147,9 +153,12 @@ private slots:
             service->send("togglePlay");
     }
 
-    void togglePlay()
+    void shortcutActivated()
     {
-        service->send("togglePlay");
+        QString command = shortcuts.value(static_cast<QxtGlobalShortcut *>(sender()));
+
+        if (command != "")
+            service->send(command);
     }
 };
 
@@ -159,7 +168,16 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    MusicdRemote remote(QHostAddress::LocalHost, 48278);
+    QMap<QString, QString> mappings;
+
+    foreach (QString arg, app.arguments())
+    {
+        int p = arg.indexOf('=');
+        if (p > 0 && p < arg.length() - 1)
+            mappings.insert(arg.left(p), arg.mid(p + 1));
+    }
+
+    MusicdRemote remote(QHostAddress::LocalHost, 48278, mappings);
     
     return app.exec();
 }

@@ -37,7 +37,7 @@ public:
 
         QxtWebPageEvent *response;
 
-        if (event->method == "GET" && path == "/") {
+        if (event->method == "GET" && path == "/events") {
             QIODevice *fifo = new QxtFifo();
             fifo->open(QIODevice::ReadWrite);
 
@@ -127,7 +127,7 @@ private:
         manager->setPort(port);
 
         connect(service, SIGNAL(received(QString)),
-                this, SLOT(setState(QString)));
+                this, SLOT(received(QString)));
         connect(service, SIGNAL(connectionStatusChanged(bool)),
                 this, SLOT(connectionStatusChanged(bool)));
     }
@@ -185,11 +185,19 @@ private slots:
         }
     }
 
-    void setState(QString state)
+    void received(QString message)
     {
-        if (states.contains(state)) {
-            trayIcon->setIcon(QIcon(QString(":/icons/%1").arg(state)));
-            trayMenu->actions()[0]->setText((state == "play") ? "Pause" : "Play");
+        if (message.startsWith("state/")) {
+            QString state = message.mid(6);
+
+            if (states.contains(state)) {
+                trayIcon->setIcon(QIcon(QString(":/icons/%1").arg(state)));
+                trayMenu->actions()[0]->setText((state == "play") ? "Pause" : "Play");
+            }
+        } else if (message.startsWith("command/")) {
+            QString command = message.mid(8);
+
+            service->send(command);
         }
     }
 
@@ -225,15 +233,23 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     QMap<QString, QString> mappings;
+    bool listenAny = false;
 
     foreach (QString arg, app.arguments())
     {
+        if (arg == "-listenany") {
+            listenAny = true;
+            continue;
+        }
+
         int p = arg.indexOf('=');
         if (p > 0 && p < arg.length() - 1)
             mappings.insert(arg.left(p), arg.mid(p + 1));
     }
 
-    MusicdRemote remote(QHostAddress::LocalHost, 48278, mappings);
+    MusicdRemote remote(listenAny ? QHostAddress::Any : QHostAddress::LocalHost,
+                        48278,
+                        mappings);
     
     return app.exec();
 }

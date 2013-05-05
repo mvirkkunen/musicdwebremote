@@ -3,5 +3,6 @@
         <file alias="pause">images/control_pause_blue.png</file>
         <file alias="play">images/control_play_blue.png</file>
         <file alias="stop">images/control_stop_blue.png</file>
+        <file alias="unknown">images/control_unknown.png</file>
     </qresource>
 </RCC>

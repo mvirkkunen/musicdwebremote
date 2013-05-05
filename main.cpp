@@ -44,6 +44,7 @@ public:
             connect(fifo, SIGNAL(destroyed(QObject*)), this, SLOT(fifoDestroyed(QObject*)));
 
             eventFifos.append(fifo);
+            emit connectionStatusChanged(true);
 
             response = new QxtWebPageEvent(-1, event->requestID, fifo);
             response->contentType = QByteArray("text/event-stream");
@@ -76,10 +77,14 @@ private slots:
     void fifoDestroyed(QObject *obj)
     {
         eventFifos.removeOne(static_cast<QIODevice *>(obj));
+
+        emit connectionStatusChanged(!eventFifos.empty());
     }
 
 signals:
     void received(QString event);
+
+    void connectionStatusChanged(bool connected);
 };
 
 class MusicdRemote : public QObject
@@ -104,7 +109,7 @@ public:
         initService(address, port);
         initUI(mappings);
 
-        setState("stop");
+        connectionStatusChanged(false);
 
         trayIcon->show();
         manager->start();
@@ -123,6 +128,8 @@ private:
 
         connect(service, SIGNAL(received(QString)),
                 this, SLOT(setState(QString)));
+        connect(service, SIGNAL(connectionStatusChanged(bool)),
+                this, SLOT(connectionStatusChanged(bool)));
     }
 
     void initUI(QMap<QString, QString> mappings)
@@ -140,7 +147,7 @@ private:
         connect(trayMenu, SIGNAL(triggered(QAction*)),
                 this, SLOT(trayMenuTriggered(QAction *)));
 
-        trayIcon = new QSystemTrayIcon(QIcon(":/icons/stop"));
+        trayIcon = new QSystemTrayIcon(QIcon(":/icons/unknown"));
         trayIcon->setContextMenu(trayMenu);
 
         connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
@@ -167,6 +174,17 @@ private:
     }
 
 private slots:
+    void connectionStatusChanged(bool connected)
+    {
+        if (!connected)
+            trayIcon->setIcon(QIcon(":/icons/unknown"));
+
+        foreach (QAction *action, trayMenu->actions()) {
+            if (action->data().type() == QVariant::String)
+                action->setEnabled(connected);
+        }
+    }
+
     void setState(QString state)
     {
         if (states.contains(state)) {

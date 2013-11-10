@@ -51,7 +51,7 @@ void EventHttpServer::sockReadyRead()
     QString method = parts[0], path = parts[1];
 
     QString status = "HTTP/1.1 200 OK";
-    QString contentType = "text/plain";
+    QString contentType = "";
     bool close = true;
 
     if (method == "GET" && path == "/events") {
@@ -73,18 +73,22 @@ void EventHttpServer::sockReadyRead()
     QTextStream out(sock);
 
     out << status << "\r\n"
-        << "Access-Control-Allow-Origin: *\r\n"
-        << "Content-Type: " << contentType << "\r\n";
+        << "Access-Control-Allow-Origin: *\r\n";
 
-    if (close)
-        out << "Content-Length: 0\r\n";
+    if (contentType != "")
+        out << "Content-Type: " << contentType << "\r\n";
+
+    if (close) {
+        out << "Connection: close\r\n"
+            << "Content-Length: 0\r\n";
+    }
 
     out << "\r\n";
 
-    if (close) {
+    out.flush();
+
+    if (close)
         sock->close();
-        sock->deleteLater();
-    }
 }
 
 void EventHttpServer::sockDisconnected()

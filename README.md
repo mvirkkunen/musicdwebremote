@@ -5,7 +5,6 @@ An application that enables you to remote control [musicdweb](https://github.com
 ## Prerequisites
 
 * Qt 4.8
-* [LibQxt](http://libqxt.org/) (git version)
 
 ## Usage
 

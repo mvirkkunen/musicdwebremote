@@ -1,20 +1,21 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2013-05-04T18:26:35
-#
-#-------------------------------------------------
-
-CONFIG   += qxt
-QT       += core gui network
-QXT      += widgets web
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
 TARGET = musicdwebremote
 TEMPLATE = app
 
-SOURCES += main.cpp
+QT += core gui network
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-RESOURCES += resources.qrc
+SOURCES += \
+    main.cpp \
+    eventhttpserver.cpp
 
-OTHER_FILES += README.md
+HEADERS += \
+    eventhttpserver.h
+
+RESOURCES += \
+    resources.qrc
+
+OTHER_FILES += \
+    README.md \
+    COPYING
+
+include(qxt/qxt.pri)

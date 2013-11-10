@@ -13,9 +13,9 @@ Starting musicdwebremote without arguments shows state of musicdweb on the syste
 
 To assign global hotkeys, list them as arguments in the format "KeyName=command". The key names are listed in [Qt's documentation](http://qt-project.org/doc/qt-4.8/qt.html#Key-enum) (the part after Qt::Key_). For example:
 
-    ./musicdwebremote Pause=togglePlay F12=next
+    ./musicdwebremote Pause=togglePlay F1=next
 
-Maps the Pause/Break key to "toggle play" and the F12 key to "next track". The available commands in the current version of musicdweb are as follows:
+Maps the Pause/Break key to "toggle play" and the F1 key to "next track". The available commands in the current version of musicdweb are as follows:
 
 * togglePlay
 * play

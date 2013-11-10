@@ -1,15 +1,18 @@
-#include <QObject>
-#include <QApplication>
-#include <QList>
-
-#include <QIcon>
-#include <QSystemTrayIcon>
 #include <QAction>
+#include <QApplication>
+#include <QClipboard>
+#include <QIcon>
+#include <QList>
 #include <QMenu>
+#include <QObject>
+#include <QSystemTrayIcon>
+#include <QTimer>
 
 #include <qxt/qxtglobalshortcut.h>
 
-#include <eventhttpserver.h>
+#include "eventhttpserver.h"
+#include "trackinfo.h"
+#include "popupwindow.h"
 
 class MusicdRemote : public QObject
 {
@@ -20,9 +23,12 @@ class MusicdRemote : public QObject
     QList<QString> states;
 
     QMenu *trayMenu;
+    QAction *copyTrackAction;
     QSystemTrayIcon *trayIcon;
 
-    QMap<QxtGlobalShortcut *, QString> shortcuts;
+    PopupWindow *popup;
+
+    TrackInfo trackInfo;
 
 public:
     MusicdRemote(quint16 port, bool listenAny, QMap<QString, QString> mappings)
@@ -41,7 +47,23 @@ public:
                 this, SLOT(received(QString)));
         connect(server, SIGNAL(connectionStatusChanged(bool)),
                 this, SLOT(connectionStatusChanged(bool)));
+
+        popup = new PopupWindow(server);
+
         server->start();
+
+        QTimer *tmr = new QTimer();
+        tmr->setSingleShot(true);
+        tmr->setInterval(100);
+
+        connect(tmr, SIGNAL(timeout()), this, SLOT(test()));
+
+        tmr->start();
+    }
+
+private slots:
+    void test(){
+        popup->showNear(trayIcon->geometry());
     }
 
 private:
@@ -50,12 +72,7 @@ private:
     {
         trayMenu = new QMenu();
 
-        addMenuCommand("Play", "togglePlay");
-        addMenuCommand("Stop", "stop");
-        trayMenu->addSeparator();
-        addMenuCommand("Next track", "next");
-        addMenuCommand("Previous track", "prev");
-        trayMenu->addSeparator();
+        copyTrackAction = trayMenu->addAction("Copy track info", this, SLOT(copyTrackInfo()));
         trayMenu->addAction("Quit", this, SLOT(quit()));
 
         connect(trayMenu, SIGNAL(triggered(QAction*)),
@@ -72,30 +89,19 @@ private:
             i.next();
 
             QxtGlobalShortcut *shortcut = new QxtGlobalShortcut(QKeySequence(i.key()));
-            shortcuts.insert(shortcut, i.value());
+            shortcut->setProperty("_command", i.value());
 
             connect(shortcut, SIGNAL(activated()),
                     this, SLOT(shortcutActivated()));
         }
     }
 
-    void addMenuCommand(QString text, QString command)
-    {
-        QAction *action = new QAction(text, trayMenu);
-
-        action->setData(command);
-        trayMenu->addAction(action);
-    }
-
 private slots:
     void connectionStatusChanged(bool connected)
     {
-        if (!connected)
-            trayIcon->setIcon(QIcon(":/icons/unknown"));
-
-        foreach (QAction *action, trayMenu->actions()) {
-            if (action->data().type() == QVariant::String)
-                action->setEnabled(connected);
+        if (!connected) {
+            trayIcon->setIcon(QIcon(":/tray/no_connection"));
+            copyTrackAction->setEnabled(false);
         }
     }
 
@@ -104,39 +110,44 @@ private slots:
         if (message.startsWith("state/")) {
             QString state = message.mid(6);
 
-            if (states.contains(state)) {
-                trayIcon->setIcon(QIcon(QString(":/icons/%1").arg(state)));
-                trayMenu->actions()[0]->setText((state == "play") ? "Pause" : "Play");
-            }
+            if (states.contains(state))
+                trayIcon->setIcon(QIcon(QString(":/tray/%1").arg(state)));
         } else if (message.startsWith("command/")) {
             QString command = message.mid(8);
 
             server->send(command);
+        } else if (message.startsWith("track?")) {
+            trackInfo.parse(message);
+
+            popup->setTrackInfo(trackInfo);
+            copyTrackAction->setEnabled(trackInfo.valid());
         }
     }
 
     void iconClick(QSystemTrayIcon::ActivationReason reason)
     {
-        if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+        if (reason == QSystemTrayIcon::Trigger)
+            popup->showNear(trayIcon->geometry());
+        else if (reason == QSystemTrayIcon::MiddleClick)
             server->send("togglePlay");
     }
 
     void shortcutActivated()
     {
-        QString command = shortcuts.value(static_cast<QxtGlobalShortcut *>(sender()));
-
+        QString command = ((QxtGlobalShortcut *)sender())->property("_command").toString();
         if (command != "")
             server->send(command);
-    }
-
-    void trayMenuTriggered(QAction *action)
-    {
-        server->send(action->data().value<QString>());
     }
 
     void quit()
     {
         QApplication::exit();
+    }
+
+    void copyTrackInfo()
+    {
+        if (trackInfo.valid())
+            QApplication::clipboard()->setText(trackInfo.toString());
     }
 };
 

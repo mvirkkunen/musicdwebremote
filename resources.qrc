@@ -1,8 +1,18 @@
 <RCC>
-    <qresource prefix="/icons">
-        <file alias="pause">images/control_pause_blue.png</file>
-        <file alias="play">images/control_play_blue.png</file>
-        <file alias="stop">images/control_stop_blue.png</file>
-        <file alias="unknown">images/control_unknown.png</file>
+    <qresource prefix="/tray">
+        <file alias="play">images/tray_play.png</file>
+        <file alias="stop">images/tray_stop.png</file>
+        <file alias="no_connection">images/tray_no_connection.png</file>
+        <file alias="pause">images/tray_pause.png</file>
+    </qresource>
+    <qresource prefix="/button">
+        <file alias="next">images/button_next.svg</file>
+        <file alias="pause">images/button_pause.svg</file>
+        <file alias="play">images/button_play.svg</file>
+        <file alias="prev">images/button_prev.svg</file>
+        <file alias="stop">images/button_stop.svg</file>
+    </qresource>
+    <qresource prefix="/styles">
+        <file alias="popupwindow">popupwindow.qss</file>
     </qresource>
 </RCC>

@@ -1,0 +1,15 @@
+QPushButton {
+    background: rgba(0, 0, 255, 48);
+    border: 1px solid transparent;
+    outline: none;
+    padding: 4px 0;
+}
+
+QPushButton:pressed {
+    background: rgba(0, 0, 255, 32);
+}
+
+QPushButton:disabled {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 255, 48);
+}

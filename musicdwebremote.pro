@@ -6,16 +6,21 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 SOURCES += \
     main.cpp \
-    eventhttpserver.cpp
+    eventhttpserver.cpp \
+    popupwindow.cpp \
+    trackinfo.cpp
 
 HEADERS += \
-    eventhttpserver.h
+    eventhttpserver.h \
+    popupwindow.h \
+    trackinfo.h
 
 RESOURCES += \
     resources.qrc
 
 OTHER_FILES += \
     README.md \
-    COPYING
+    COPYING \
+    popupwindow.qss
 
 include(qxt/qxt.pri)

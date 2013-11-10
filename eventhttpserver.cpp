@@ -1,8 +1,8 @@
+#include "eventhttpserver.h"
+
 #include <QStringList>
 #include <QTcpServer>
 #include <QTcpSocket>
-
-#include "eventhttpserver.h"
 
 EventHttpServer::EventHttpServer(quint16 port, bool listenAny, QObject *parent)
     : QTcpServer(parent), port(port), listenAny(listenAny)
@@ -62,8 +62,6 @@ void EventHttpServer::sockReadyRead()
 
         contentType = "text/event-stream";
         close = false;
-
-        qDebug() << "New client";
     } else if (method == "POST" && path.length() > 1) {
         emit received(path.mid(1));
     } else {
@@ -97,7 +95,6 @@ void EventHttpServer::sockDisconnected()
 
     if (clients.contains(sock)) {
         clients.removeOne(sock);
-        qDebug() << "Client quit";
 
         if (clients.empty())
             emit connectionStatusChanged(false);

@@ -1,11 +1,13 @@
 #ifndef POPUPWINDOW_H
 #define POPUPWINDOW_H
 
-#include <QList>
 #include <QDialog>
-#include <QGridLayout>
-#include <QPushButton>
+#include <QMainWindow>
+#include <QBoxLayout>
 #include <QLabel>
+#include <QList>
+#include <QPushButton>
+#include <QSystemTrayIcon>
 
 #include <trackinfo.h>
 #include <eventhttpserver.h>
@@ -16,27 +18,25 @@ class PopupWindow : public QDialog
 
     EventHttpServer *server;
 
+    QSystemTrayIcon *anchor;
+
+    QBoxLayout *vbox;
+
     QList<QPushButton *> buttons;
 
     QPushButton *playButton;
     QLabel *label;
 
 public:
-    PopupWindow(EventHttpServer *server, QWidget *parent = 0);
+    PopupWindow(EventHttpServer *server, QSystemTrayIcon *anchor, QWidget *parent = 0);
 
-    void showNear(QRect buttonRect);
     void setTrackInfo(TrackInfo &trackInfo);
-
-protected:
-    virtual void paintEvent(QPaintEvent *event);
+    void showAtButton();
 
 private:
-    QGridLayout *grid;
+    QPushButton *addButton(QBoxLayout *box, QString command, QString icon, QString toolTip);
 
-    QPushButton *addButton(QString command, int index, QString icon, QString toolTip);
-
-    void ensureWithinScreen();
-    QRect ensureWithinScreen(QRect rect);
+    void updatePosition();
 
 private slots:
     void buttonClicked();

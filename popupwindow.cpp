@@ -7,36 +7,39 @@
 #include <QStringBuilder>
 #include <QUrl>
 
-PopupWindow::PopupWindow(EventHttpServer *server, QWidget *parent) :
+PopupWindow::PopupWindow(EventHttpServer *server, QSystemTrayIcon *anchor, QWidget *parent) :
     QDialog(parent),
-    server(server)
+    server(server),
+    anchor(anchor)
 {
     QFile styleFile(":/styles/popupwindow");
     styleFile.open(QFile::ReadOnly);
 
     setStyleSheet(styleFile.readAll());
 
-    grid = new QGridLayout(this);
-    grid->setMargin(10);
-    grid->setSpacing(10);
+    vbox = new QBoxLayout(QBoxLayout::TopToBottom, this);
+    vbox->setSpacing(10);
 
-    playButton = addButton("togglePlay", 0, "play", "Play");
-    addButton("stop", 1, "stop", "Stop");
-    addButton("rewindOrPrev", 2, "prev", "Previous track");
-    addButton("next", 3, "next", "Next track");
+    QBoxLayout *buttonBox = new QBoxLayout(QBoxLayout::LeftToRight);
+
+    playButton = addButton(buttonBox, "togglePlay", "play", "Play");
+    addButton(buttonBox, "stop", "stop", "Stop");
+    addButton(buttonBox, "rewindOrPrev", "prev", "Previous track");
+    addButton(buttonBox, "next", "next", "Next track");
+
+    vbox->addLayout(buttonBox);
 
     label = new QLabel();
     label->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     label->setWordWrap(true);
-    label->setMaximumWidth(320 - grid->margin());
-    grid->addWidget(label, 1, 0, 1, 4);
+    label->setMaximumWidth(320 - vbox->margin());
+    label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Minimum);
 
-    setLayout(grid);
+    vbox->addWidget(label);
 
     setMinimumWidth(320);
 
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
 
     connect(server, SIGNAL(received(QString)),
             this, SLOT(received(QString)));
@@ -46,7 +49,7 @@ PopupWindow::PopupWindow(EventHttpServer *server, QWidget *parent) :
     connectionStatusChanged(false);
 }
 
-QPushButton *PopupWindow::addButton(QString command, int index, QString icon, QString toolTip)
+QPushButton *PopupWindow::addButton(QBoxLayout *box, QString command, QString icon, QString toolTip)
 {
     QPushButton *button = new QPushButton(this);
     button->setFlat(true);
@@ -54,7 +57,7 @@ QPushButton *PopupWindow::addButton(QString command, int index, QString icon, QS
     button->setIcon(QIcon(QString(":/button/%1").arg(icon)));
     button->setToolTip(toolTip);
 
-    grid->addWidget(button, 0, index);
+    box->addWidget(button);
 
     connect(button, SIGNAL(clicked()), this, SLOT(buttonClicked()));
 
@@ -63,73 +66,51 @@ QPushButton *PopupWindow::addButton(QString command, int index, QString icon, QS
     return button;
 }
 
-void PopupWindow::showNear(QRect buttonRect)
+void PopupWindow::updatePosition()
 {
-    QRect screen = QApplication::desktop()->availableGeometry(buttonRect.topLeft());
+    QRect anchorRect = anchor->geometry(),
+          screen = QApplication::desktop()->availableGeometry(anchorRect.topLeft());
 
-    layout()->update();
-    layout()->activate();
+    // Assuming the tray is either at the top or the bottom for now
+    bool atTop = (anchorRect.y() < screen.center().y());
 
+    vbox->setDirection(atTop ? QBoxLayout::TopToBottom : QBoxLayout::BottomToTop);
+
+    // Adjust window size to shrink to fit
     adjustSize();
 
     QRect geom = geometry();
 
-    // Assuming the tray is either at the top or the bottom for now
-
     // Center horizontally
-    geom.moveLeft(buttonRect.center().x() - geom.width() / 2);
+    geom.moveLeft(anchorRect.center().x() - geom.width() / 2);
 
-    // Move window above/below tray icon
-    if (buttonRect.y() < screen.center().y())
-        geom.moveTop(buttonRect.bottom() + 2); // open below
+    // Move above/below tray icon
+    if (atTop)
+        geom.moveTop(anchorRect.bottom() + 2);
     else
-        geom.moveBottom(buttonRect.top() - 2); // open above
+        geom.moveBottom(anchorRect.top() - 2);
 
-    setGeometry(ensureWithinScreen(geom));
-
-    show();
-}
-
-void PopupWindow::ensureWithinScreen()
-{
-    adjustSize();
-
-    setGeometry(ensureWithinScreen(geometry()));
-}
-
-QRect PopupWindow::ensureWithinScreen(QRect geom)
-{
-    QRect screen = QApplication::desktop()->availableGeometry(geom.center());
-
-    // Ensure window is entirely on screen
-
+    // Ensure window is on screen
     if (geom.right() > screen.right())
         geom.moveRight(screen.right());
 
     if (geom.left() < screen.left())
         geom.moveLeft(screen.left());
 
-    return geom;
+    setGeometry(geom);
 }
 
 void PopupWindow::setTrackInfo(TrackInfo &trackInfo)
 {
     label->setText(trackInfo.toHTML());
 
-    ensureWithinScreen();
+    updatePosition();
 }
 
-void PopupWindow::paintEvent(QPaintEvent *event)
+void PopupWindow::showAtButton()
 {
-    Q_UNUSED(event);
-
-    QPainter p(this);
-
-    p.setPen(QColor(0, 0, 255, 48));
-    p.setBrush(QColor(240, 248, 255, 220));
-    p.drawRect(0, 0, width() - 1, height() - 1);
-
-    //border: 1px solid rgba(0, 0, 255, 32);
+    updatePosition();
+    show();
 }
 
 void PopupWindow::buttonClicked()
@@ -146,10 +127,10 @@ void PopupWindow::connectionStatusChanged(bool connected)
     else
         label->setText("<div style=\"text-align: center; padding: 20px;\">Disconnected.</div>");
 
-    ensureWithinScreen();
-
     foreach (QPushButton *button, buttons)
         button->setEnabled(connected);
+
+    updatePosition();
 }
 
 void PopupWindow::received(QString message)

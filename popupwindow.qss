@@ -1,3 +1,8 @@
+QDialog {
+    background-color: rgb(240, 248, 255);
+    border: 1px solid rgba(0, 0, 255, 48);
+}
+
 QPushButton {
     background: rgba(0, 0, 255, 48);
     border: 1px solid transparent;

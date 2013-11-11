@@ -48,22 +48,9 @@ public:
         connect(server, SIGNAL(connectionStatusChanged(bool)),
                 this, SLOT(connectionStatusChanged(bool)));
 
-        popup = new PopupWindow(server);
+        popup = new PopupWindow(server, trayIcon);
 
         server->start();
-
-        QTimer *tmr = new QTimer();
-        tmr->setSingleShot(true);
-        tmr->setInterval(100);
-
-        connect(tmr, SIGNAL(timeout()), this, SLOT(test()));
-
-        tmr->start();
-    }
-
-private slots:
-    void test(){
-        popup->showNear(trayIcon->geometry());
     }
 
 private:
@@ -74,9 +61,6 @@ private:
 
         copyTrackAction = trayMenu->addAction("Copy track info", this, SLOT(copyTrackInfo()));
         trayMenu->addAction("Quit", this, SLOT(quit()));
-
-        connect(trayMenu, SIGNAL(triggered(QAction*)),
-                this, SLOT(trayMenuTriggered(QAction *)));
 
         trayIcon = new QSystemTrayIcon(QIcon(":/icons/unknown"));
         trayIcon->setContextMenu(trayMenu);
@@ -127,7 +111,7 @@ private slots:
     void iconClick(QSystemTrayIcon::ActivationReason reason)
     {
         if (reason == QSystemTrayIcon::Trigger)
-            popup->showNear(trayIcon->geometry());
+            popup->showAtButton();
         else if (reason == QSystemTrayIcon::MiddleClick)
             server->send("togglePlay");
     }
@@ -141,6 +125,7 @@ private slots:
 
     void quit()
     {
+        trayIcon->hide();
         QApplication::exit();
     }
 
@@ -156,6 +141,8 @@ private slots:
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    QApplication::setApplicationName("musicdwebremote");
 
     QMap<QString, QString> mappings;
     bool listenAny = false;

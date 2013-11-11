@@ -1,5 +1,6 @@
 TARGET = musicdwebremote
 TEMPLATE = app
+DEFINES += "QXT_STATIC=true"
 
 QT += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets

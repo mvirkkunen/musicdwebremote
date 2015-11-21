@@ -7,28 +7,29 @@
 EventHttpServer::EventHttpServer(quint16 port, bool listenAny, QObject *parent)
     : QTcpServer(parent), port(port), listenAny(listenAny)
 {
-
+    connect(this, SIGNAL(newConnection()), this, SLOT(serverNewConnection()));
 }
 
-void EventHttpServer::start() {
-    listen(listenAny ? QHostAddress::Any : QHostAddress::LocalHost, port);
+bool EventHttpServer::start() {
+    return listen(listenAny ? QHostAddress::Any : QHostAddress::LocalHost, port);
 }
 
-void EventHttpServer::incomingConnection(int handle)
+void EventHttpServer::serverNewConnection()
 {
-    QTcpSocket *sock = new QTcpSocket(this);
+    QTcpSocket *sock = nextPendingConnection();
 
     connect(sock, SIGNAL(readyRead()), this, SLOT(sockReadyRead()));
     connect(sock, SIGNAL(disconnected()), this, SLOT(sockDisconnected()));
-    sock->setSocketDescriptor(handle);
 }
 
 void EventHttpServer::send(QString event)
 {
     QByteArray bytes = QString("event: command\r\ndata: %1\r\n\r\n").arg(event).toUtf8();
 
-    foreach (QTcpSocket *sock, clients)
-        sock->write(bytes);
+    foreach (QTcpSocket *sock, clients) {
+        if (sock->isValid())
+            sock->write(bytes);
+    }
 }
 
 void EventHttpServer::sockReadyRead()

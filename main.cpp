@@ -4,6 +4,7 @@
 #include <QIcon>
 #include <QList>
 #include <QMenu>
+#include <QMessageBox>
 #include <QObject>
 #include <QSystemTrayIcon>
 #include <QTimer>
@@ -39,8 +40,6 @@ public:
 
         connectionStatusChanged(false);
 
-        trayIcon->show();
-
         server = new EventHttpServer(port, listenAny, this);
 
         connect(server, SIGNAL(received(QString)),
@@ -49,8 +48,18 @@ public:
                 this, SLOT(connectionStatusChanged(bool)));
 
         popup = new PopupWindow(server, trayIcon);
+    }
 
-        server->start();
+    bool start()
+    {
+        if (!server->start()) {
+            QMessageBox::critical(NULL, "musicdwebremote", "Failed to start. Port is probably in use.");
+            return false;
+        }
+
+        trayIcon->show();
+
+        return true;
     }
 
 private:
@@ -160,6 +169,9 @@ int main(int argc, char *argv[])
     }
 
     MusicdRemote remote(48278, listenAny, mappings);
+
+    if (!remote.start())
+        return 1;
     
     return app.exec();
 }

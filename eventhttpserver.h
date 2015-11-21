@@ -16,14 +16,13 @@ private:
 public:
     EventHttpServer(quint16 port, bool listenAny, QObject *parent = 0);
 
-    void start();
+    bool start();
 
     void send(QString event);
 
-protected:
-    virtual void incomingConnection(int handle);
-
 private slots:
+    void serverNewConnection();
+
     void sockReadyRead();
 
     void sockDisconnected();

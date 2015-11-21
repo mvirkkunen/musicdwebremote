@@ -2,6 +2,7 @@
 
 #include <QTextDocument>
 #include <QUrl>
+#include <QUrlQuery>
 
 TrackInfo::TrackInfo()
 {
@@ -10,11 +11,12 @@ TrackInfo::TrackInfo()
 void TrackInfo::parse(QString info)
 {
     QUrl url(info);
+    QUrlQuery query(url.query());
 
-    id = url.queryItemValue("id").toInt();
-    title = QUrl::fromPercentEncoding(url.queryItemValue("title").toUtf8());
-    artist = QUrl::fromPercentEncoding(url.queryItemValue("artist").toUtf8());
-    album = QUrl::fromPercentEncoding(url.queryItemValue("album").toUtf8());
+    id = query.queryItemValue("id").toInt();
+    title = query.queryItemValue("title");
+    artist = query.queryItemValue("artist");
+    album = query.queryItemValue("album");
 }
 
 bool TrackInfo::valid()
@@ -51,15 +53,15 @@ QString TrackInfo::toHTML()
     QString s;
 
     if (title != "")
-        s += QString("<strong>%1</strong>").arg(Qt::escape(title));
+        s += QString("<strong>%1</strong>").arg(title.toHtmlEscaped());
     else
         s += "<strong>(no title)</strong>";
 
     if (artist != "")
-        s += QString("<br />by <strong>%1</strong>").arg(Qt::escape(artist));
+        s += QString("<br />by <strong>%1</strong>").arg(artist.toHtmlEscaped());
 
     if (album != "")
-        s += QString("<br />on <strong>%1</strong>").arg(Qt::escape(album));
+        s += QString("<br />on <strong>%1</strong>").arg(album.toHtmlEscaped());
 
     return s;
 }

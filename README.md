@@ -4,7 +4,7 @@ An application that enables you to remote control [musicdweb](https://github.com
 
 ## Prerequisites
 
-* Qt 4.8
+* Qt 5.5 (tested, may work on outdated versions)
 
 ## Usage
 
@@ -23,3 +23,13 @@ Maps the Pause/Break key to "toggle play" and the F1 key to "next track". The av
 * prev
 * next
 * rewindOrPrev
+
+## Windows
+
+For use on Windows with dynamic linking, make sure the following DLL files can be found e.g. by copying them into the same directory with the .exe:
+
+* Qt5Core.dll
+* Qt5Gui.dll
+* Qt5Network.dll
+* Qt5Svg.dll
+* Qt5Widgets.dll
